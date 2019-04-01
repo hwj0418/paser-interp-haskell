@@ -16,7 +16,28 @@ parseFile filename = do
     return ans
 
 mainParser :: Parser Expr
-mainParser = error "TODO"
+mainParser = whitespaces *> expr <* eof
+
+expr :: Parser Expr
+expr = or
+    where
+        -- use chainr to pass concat operation
+        or = chainr1 cat (char '+' *> whitespaces *> pure (Or))
+        -- similarly, use chainr to pass star operation
+        cat = chainr1 star (whitespaces *> pure (Cat))
+        star = do
+            x <- atom
+            y <- whitespaces
+            z <- many (char '*')
+            pure (foldr (\_ a -> Star a) x z)  
+        atom = bit <|>  between (char '(' *> whitespaces)
+                                (char ')' *> whitespaces)
+                                expr
+        -- bit function only allows 0 and 1 upon the bit
+        bit = A <$> b <$> (satisfy (== '0') <|> satisfy (== '1'))
+        b n
+        |(n == '0') = B0
+        |(n == '1') = B1
 
 
 mainInterp :: Expr -> Either Error Value
