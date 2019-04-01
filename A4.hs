@@ -20,4 +20,10 @@ mainParser = error "TODO"
 
 
 mainInterp :: Expr -> Either Error Value
-mainInterp = error "TODO"
+mainInterp = interp Map.empty
+
+intOrDie :: Value -> Either String Integer
+intOrDie (VN i) = pure i
+intOrDie _ = Left "type error"
+
+
