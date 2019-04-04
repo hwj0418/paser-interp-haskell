@@ -16,26 +16,32 @@ parseFile filename = do
     return ans
 
 mainParser :: Parser Expr
-mainParser = do
+mainParser = do -- remove all white spaces
     whitespaces
     b <- block
     eof
     return b
 -- "  let x \n     = 4 * ( \n  5+6) ; \n in \\ y ->  if  x< y then x else y\n"
--- let x = 4 * (5 + 6);
--- in \y -> if x < y then x else y
--- cond: if x < y then x else y 
-block = cond <|> lambda <|> myLet <|> myInfix
 
-cond = do
+
+
+
+-- let and infix will cause error, change name to myLet and myInfix
+block = cond <|> lambda <|> myLet <|> myInfix 
+
+--strip each component out and create new object
+
+-- cond: if x < y then x else y 
+cond = do 
     terminal "if"
-    ifCase <- block
+    ifCase <- block 
     terminal "then"
     thenCase <- block
     terminal "else"
     elseCase <- block
-    return (Cond ifCase thenCase elseCase)
+    return (Cond ifCase thenCase elseCase) --return Cond object
 
+-- \y -> if x < y then x else y
 lambda = do
     operator "\\"
     v <- var
@@ -43,6 +49,7 @@ lambda = do
     b <- block
     return (Lambda v b)
 
+-- let x = 4 * (5 + 6); in ..
 myLet = do 
     terminal "let"
     equations <- some equation
@@ -50,6 +57,7 @@ myLet = do
     body <- block
     return (Let equations body)
 
+-- x = 4 * (5 + 6)
 equation = do
     v <- var
     terminal "="
@@ -82,9 +90,9 @@ atom = (do
     terminal ")"
     return b) <|> literal <|> fmap Var var
 
-literal = fmap Num natural <|> fmap Bln boolean
+literal = fmap Num integer <|> fmap Bln bool
 
-boolean = (keyword "True" *> pure True) <|> (keyword "False" *> pure False)
+bool = (keyword "True" *> pure True) <|> (keyword "False" *> pure False)
 
 var = identifier ["if", "then", "else", "let", "in", "True", "False"]
 
