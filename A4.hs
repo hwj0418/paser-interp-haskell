@@ -100,31 +100,27 @@ interp env (Prim2 Mod e1 e2) = do
         then Left DivByZero
         else pure (VN (i `mod` j))
 
+-- On lecture note it saids: You have to support True==True too on your assignment.
+-- But on assignment handout it saids: For simplicity, Eq and Lt work for integer operands only. If an operand is not an integer, it is a type error.
+
 -- Lecture code
--- Add 1 more case to support bool comparison
+-- Add type error handling
 interp env (Prim2 Eq e1 e2) = do
     a <- interp env e1
     case a of 
-        -- Compare integers
+        -- For integer type
         VN i -> do
             i <- intOrDie a
             b <- interp env e2
             j <- intOrDie b
             pure (VB (i == j))
-        -- Compare booleans
-        VB i -> do
-            i <- boolOrDie a
-            b <- interp env e2
-            j <- boolOrDie b
-            pure (VB (i == j))
-        -- Only support integer and boolean comparison.
         -- Any other type will be considered as TypeError.
         _ -> Left TypeError
 
 -- New code
 -- Lessthan comparison
 -- Modified from Eq comparison
--- Support both integer and bool comparison
+-- Add type error handling
 interp env (Prim2 Lt e1 e2) = do
     a <- interp env e1
     case a of 
@@ -133,12 +129,6 @@ interp env (Prim2 Lt e1 e2) = do
             b <- interp env e2
             j <- intOrDie b
             pure (VB (i < j))
-        -- Compare booleans
-        VB i -> do
-            b <- interp env e2
-            j <- boolOrDie b
-            pure (VB (i < j))
-        -- Only support integer and boolean comparison.
         -- Any other type will be considered as TypeError.
         _ -> Left TypeError
 
