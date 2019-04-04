@@ -16,41 +16,28 @@ parseFile filename = do
     return ans
 
 mainParser :: Parser Expr
-mainParser = whitespaces *> expr <* eof
-
-expr :: Parser Expr
-expr = or
-    where
-        -- use chainr to pass concat operation
-        or = chainr1 cat (char '+' *> whitespaces *> pure (Or))
-        -- similarly, use chainr to pass star operation
-        cat = chainr1 star (whitespaces *> pure (Cat))
-        star = do
-            x <- atom
-            y <- whitespaces
-            z <- many (char '*')
-            pure (foldr (\_ a -> Star a) x z)  
-        atom = bit <|>  between (char '(' *> whitespaces)
-                                (char ')' *> whitespaces)
-                                expr
-        -- bit function only allows 0 and 1 upon the bit
-        bit = A <$> b <$> (satisfy (== '0') <|> satisfy (== '1'))
-        b n
-        |(n == '0') = B0
-        |(n == '1') = B1
-
+mainParser = do
+    whitespaces
+    b <- block
+    eof
+    return b
+-- "  let x \n     = 4 * ( \n  5+6) ; \n in \\ y ->  if  x< y then x else y\n"
+-- let x = 4 * (5 + 6);
+-- in \y -> if x < y then x else y
+-- cond: if x < y then x else y 
+block = cond <|> lambda <|> myLet <|> myInfix
 
 mainInterp :: Expr -> Either Error Value
 mainInterp = error "TODO"
 
 cond = do
-    keyword "if"
+    terminal "if"
     ifCase <- block
-    keyword "then"
+    terminal "then"
     thenCase <- block
-    keyword "else"
+    terminal "else"
     elseCase <- block
-    return (Cond myTest myThen myElse)
+    return (Cond ifCase thenCase elseCase)
 
 lambda = do
     operator "\\"
@@ -60,15 +47,47 @@ lambda = do
     return (Lambda v b)
 
 myLet = do 
-    keyword "let"
-    eqns <- many equation
-    keyword "in"
+    terminal "let"
+    equations <- some equation
+    terminal "in"
     body <- block
-    return (Let eqns body)
+    return (Let equations body)
 
-infix = do 
+equation = do
+    v <- var
+    terminal "="
+    b <- block
+    terminal ";"
+    return (v, b)
+
+myInfix = do
     a <- arith
     (do c <- cmp
         b <- arith
         return (Prim2 c a b))
-        <|> return a
+     <|> return a
+
+cmp = operator "==" *> pure Eq <|> operator "<" *> pure Lt
+
+arith = chainl1 addend addop
+
+addop = fmap Prim2 (operator "+" *> pure Plus <|> operator "-" *> pure Minus)
+
+addend = chainl1 factor mulop
+
+factor = fmap (foldl1 App) (some atom)
+
+mulop = 
+    fmap Prim2 (operator "*" *> pure Mul <|> operator "/" *> pure Div <|> operator "%" *> pure Mod)
+
+atom = (do
+    terminal "("
+    b <- block
+    terminal ")"
+    return b) <|> literal <|> fmap Var var
+
+literal = fmap Num natural <|> fmap Bln boolean
+
+boolean = (keyword "True" *> pure True) <|> (keyword "False" *> pure False)
+
+var = identifier ["if", "then", "else", "let", "in", "True", "False"]
