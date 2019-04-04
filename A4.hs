@@ -28,6 +28,13 @@ intOrDie :: Value -> Either Error Integer
 intOrDie (VN i) = pure i
 intOrDie _ = Left TypeError
 
+-- New code
+-- boolOrDie -> supports VB aka boolean type
+-- Modified from intOrDie
+boolOrDie :: Value -> Either Error Bool
+boolOrDie (VB a) = pure a
+boolOrDie _ = Left TypeError
+
 -- Lecture code
 interp :: Map String Value -> Expr -> Either Error Value
 interp _ (Num i) = pure (VN i)
@@ -48,6 +55,16 @@ interp env (Prim2 Plus e1 e2) = do
     j <- intOrDie b
     pure (VN (i + j))
 
+-- New code
+-- Minus operation
+-- Modified from lecture code for plus operation
+interp env (Prim2 Minus e1 e2) = do
+    a <- interp env e1
+    i <- intOrDie a
+    b <- interp env e2
+    j <- intOrDie b
+    pure (VN (i - j))
+
 -- Lecture code
 -- Multiplication operation for integers
 interp env (Prim2 Mul e1 e2) = do
@@ -56,6 +73,32 @@ interp env (Prim2 Mul e1 e2) = do
     b <- interp env e2
     j <- intOrDie b
     pure (VN (i * j))
+
+-- New code
+-- Divide operation
+-- Modified from lecture code for multiplication operation
+-- Add error handling for dived by 0 case
+interp env (Prim2 Div e1 e2) = do
+    a <- interp env e1
+    i <- intOrDie a
+    b <- interp env e2
+    j <- intOrDie b
+    if j == 0
+        then Left DivByZero
+        else pure (VN (i `div` j))
+
+-- New code
+-- Mod operation
+-- Modified from lecture code for multiplication operation
+-- Add error handling for dived by 0 case
+interp env (Prim2 Mod e1 e2) = do
+    a <- interp env e1
+    i <- intOrDie a
+    b <- interp env e2
+    j <- intOrDie b
+    if j == 0
+        then Left DivByZero
+        else pure (VN (i `mod` j))
 
 -- Lecture code
 -- Add 1 more case to support bool comparison
@@ -74,6 +117,27 @@ interp env (Prim2 Eq e1 e2) = do
             b <- interp env e2
             j <- boolOrDie b
             pure (VB (i == j))
+        -- Only support integer and boolean comparison.
+        -- Any other type will be considered as TypeError.
+        _ -> Left TypeError
+
+-- New code
+-- Lessthan comparison
+-- Modified from Eq comparison
+-- Support both integer and bool comparison
+interp env (Prim2 Lt e1 e2) = do
+    a <- interp env e1
+    case a of 
+        -- Compare integers
+        VN i -> do
+            b <- interp env e2
+            j <- intOrDie b
+            pure (VB (i < j))
+        -- Compare booleans
+        VB i -> do
+            b <- interp env e2
+            j <- boolOrDie b
+            pure (VB (i < j))
         -- Only support integer and boolean comparison.
         -- Any other type will be considered as TypeError.
         _ -> Left TypeError
@@ -111,85 +175,3 @@ interp env (App f e) = do
           let bEnv = Map.insert v eVal fEnv
           interp bEnv body
       _ -> Left TypeError
-
--- New code
--- Minus operation
--- Modified from lecture code for plus operation
-interp env (Prim2 Minus e1 e2) = do
-    a <- interp env e1
-    i <- intOrDie a
-    b <- interp env e2
-    j <- intOrDie b
-    pure (VN (i - j))
-
-
--- New code
--- Divide operation
--- Modified from lecture code for multiplication operation
--- Add error handling for dived by 0 case
-interp env (Prim2 Div e1 e2) = do
-    a <- interp env e1
-    i <- intOrDie a
-    b <- interp env e2
-    j <- intOrDie b
-    if j == 0
-        then Left DivByZero
-        else pure (VN (i `div` j))
-
--- New code
--- Mod operation
--- Modified from lecture code for multiplication operation
--- Add error handling for dived by 0 case
-interp env (Prim2 Mod e1 e2) = do
-    a <- interp env e1
-    i <- intOrDie a
-    b <- interp env e2
-    j <- intOrDie b
-    if j == 0
-        then Left DivByZero
-        else pure (VN (i `mod` j))
-
--- New code
--- Lessthan comparison
--- Modified from Eq comparison
--- Support both integer and bool comparison
-interp env (Prim2 Lt e1 e2) = do
-    a <- interp env e1
-    case a of 
-        -- Compare integers
-        VN i -> do
-            b <- interp env e2
-            j <- intOrDie b
-            pure (VB (i < j))
-        -- Compare booleans
-        VB i -> do
-            b <- interp env e2
-            j <- boolOrDie b
-            pure (VB (i < j))
-        -- Only support integer and boolean comparison.
-        -- Any other type will be considered as TypeError.
-        _ -> Left TypeError
-
--- New code
--- boolOrDie -> supports VB aka boolean type
--- Modified from intOrDie
-boolOrDie :: Value -> Either Error Bool
-boolOrDie (VB a) = pure a
-boolOrDie _ = Left TypeError
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
