@@ -42,3 +42,33 @@ expr = or
 
 mainInterp :: Expr -> Either Error Value
 mainInterp = error "TODO"
+
+cond = do
+    keyword "if"
+    ifCase <- block
+    keyword "then"
+    thenCase <- block
+    keyword "else"
+    elseCase <- block
+    return (Cond myTest myThen myElse)
+
+lambda = do
+    operator "\\"
+    v <- var
+    operator "->"
+    b <- block
+    return (Lambda v b)
+
+myLet = do 
+    keyword "let"
+    eqns <- many equation
+    keyword "in"
+    body <- block
+    return (Let eqns body)
+
+infix = do 
+    a <- arith
+    (do c <- cmp
+        b <- arith
+        return (Prim2 c a b))
+        <|> return a
